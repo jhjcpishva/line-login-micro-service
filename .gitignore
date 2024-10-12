@@ -204,6 +204,5 @@ fabric.properties
 
 #
 .idea/
-config.py
 .env*
 
