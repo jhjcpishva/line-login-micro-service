@@ -1,10 +1,35 @@
 services:
   # Add your services here, for example:
-  web:
+  app:
     build: ./app/.
     environment:
       - LINE_CHANNEL_ID=
       - LINE_CHANNEL_SECRET=
-      - APP_TITLE="MyLineLogin"
+      - APP_TITLE=MyLineLogin
+      - PB_HOST=http://pocketbase:8090
+      - PB_ADMIN=admin@example.com
+      - PB_PASSWORD=password1234
+    volumes:
+      - ./app:/app
     ports:
       - "8000:8000"
+    depends_on:
+      - pocketbase
+
+  pocketbase:
+    image: ghcr.io/muchobien/pocketbase:0.22.21
+    container_name: pocketbase
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      - PB_ADMIN=admin@example.com
+      - PB_PASSWORD=password1234
+    volumes:
+      - ./docker/pocketbase/data:/pb_data
+    healthcheck: # optional (recommended) since v0.10.0
+      test: wget --no-verbose --tries=1 --spider http://localhost:8090/api/health || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    # entrypoint: /usr/local/bin/pocketbase serve --dev --http=0.0.0.0:8090 --dir=/pb_data --publicDir=/pb_public --hooksDir=/pb_hooks

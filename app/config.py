@@ -19,3 +19,6 @@ ENDPOINT_AUTH = os.getenv("ENDPOINT_AUTH", "/auth")
 
 PRODUCTION = os.getenv("PRODUCTION", "False").lower() == 'true'
 
+PB_HOST = os.getenv("PB_HOST")
+PB_ADMIN = os.getenv("PB_ADMIN")
+PB_PASSWORD = os.getenv("PB_PASSWORD")
