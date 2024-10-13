@@ -1,0 +1,10 @@
+services:
+  # Add your services here, for example:
+  web:
+    build: ./app/.
+    environment:
+      - LINE_CHANNEL_ID=
+      - LINE_CHANNEL_SECRET=
+      - APP_TITLE="MyLineLogin"
+    ports:
+      - "8000:8000"
