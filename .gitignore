@@ -1,0 +1,19 @@
+# General
+
+## Windows
+Thumbs.db
+desktop.ini
+
+## OS X
+.DS_Store
+.Spotlight-V100
+.Trashes
+._*
+
+
+# Container data
+docker/pocketbase/data
+
+# 
+.env*
+
