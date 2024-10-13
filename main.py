@@ -24,6 +24,7 @@ def get_host_url(request: Request) -> str:
 async def read_root(request: Request):
     context = {
         "request": request,
+        "title": config.APP_TITLE,
         "name": "World",
         "debug": json.dumps({
             "base/url": request.query_params.__dict__,
@@ -41,6 +42,7 @@ async def line_login(request: Request):
 
     context = {
         "request": request,
+        "title": config.APP_TITLE,
         "location": location,
     }
     return templates.TemplateResponse("login.html", context)
@@ -91,6 +93,7 @@ async def authentication(request: Request):
 
     context = {
         "request": request,
+        "title": config.APP_TITLE,
         "name": "Auth!",
         "debug": json.dumps({
             "token_response": token_response,
