@@ -3,9 +3,9 @@ services:
   app:
     build: ./app/.
     environment:
-      - LINE_CHANNEL_ID=
-      - LINE_CHANNEL_SECRET=
-      - APP_TITLE=MyLineLogin
+      - LINE_CHANNEL_ID=${LINE_CHANNEL_ID}
+      - LINE_CHANNEL_SECRET=${LINE_CHANNEL_SECRET}
+      - APP_TITLE=${APP_TITLE}
       - PB_HOST=http://pocketbase:8090
       - PB_ADMIN=admin@example.com
       - PB_PASSWORD=password1234
