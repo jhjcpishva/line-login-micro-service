@@ -44,3 +44,23 @@ print(pb.collections.create(
         ],
     }
 ))
+
+
+print(pb.collections.create(
+    {
+        "name": "login",
+        "type": "base",
+        "schema": [
+            {
+                "name": "nonce",
+                "type": "text",
+                "required": True,
+            },
+            {
+                "name": "redirect_url",
+                "type": "text",
+                "required": False,
+            }
+        ],
+    }
+))
