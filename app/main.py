@@ -1,12 +1,15 @@
 import json
 import logging
+from datetime import datetime, timezone
 
 import httpx
 import jwt
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+import pocketbase.utils
+from pocketbase import PocketBase
 
 import config
 
@@ -16,8 +19,19 @@ templates = Jinja2Templates(directory="templates")
 
 logger = logging.getLogger("uvicorn")
 
+pb = PocketBase(config.PB_HOST)
+pb.admins.auth_with_password(config.PB_ADMIN, config.PB_PASSWORD)
+
+
 def get_host_url(request: Request) -> str:
     return f"{request.base_url.scheme}://{request.base_url.netloc}"
+
+
+def get_line_login_location(request: Request, random_state: str) -> str:
+    channel_id = config.LINE_CHANNEL_ID
+    redirect_url = f"{get_host_url(request)}{config.ENDPOINT_AUTH}"
+    location = f"https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id={channel_id}&redirect_uri={redirect_url}&state={random_state}&scope=openid%20profile"
+    return location
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -34,11 +48,33 @@ async def read_root(request: Request):
 
 
 @app.get(config.ENDPOINT_LOGIN, response_class=HTMLResponse)
-async def line_login(request: Request):
-    random_state = "random_state"
-    channel_id = config.LINE_CHANNEL_ID
-    redirect_url = f"{get_host_url(request)}{config.ENDPOINT_AUTH}"
-    location = f"https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id={channel_id}&redirect_uri={redirect_url}&state={random_state}&scope=openid%20profile"
+async def line_login(request: Request, nonce: str = "__none__", redirect_url: str = None):
+    login_db = pb.collection("login")
+
+    # PocketBase
+
+    # ちゃんと確認するならこれ
+    # has_duplicate = login_db.get_list(query_params={"filter": f'nonce = "{nonce}"'}).total_items != 0
+    try:
+        # とりあえず上書きして動けばいい場合
+        while True:
+            item = login_db.get_first_list_item(f'nonce = "{nonce}"')
+            login_db.delete(item.id)
+    except pocketbase.utils.ClientResponseError as e:
+        # expecting for "The requested resource wasn't found."
+        if e.status != 404:
+            # unexpected error
+            raise e
+
+    r = pb.collection("login").create({
+        "nonce": nonce,
+        "redirect_url": redirect_url,
+    })
+    logger.info(f"pb inserted {r.id}")
+    # end of PocketBase
+
+
+    location = get_line_login_location(request, nonce)
 
     context = {
         "request": request,
@@ -49,8 +85,8 @@ async def line_login(request: Request):
 
 
 @app.get(config.ENDPOINT_AUTH, response_class=HTMLResponse)
-async def authentication(request: Request):
-    request_code = request.query_params.get("code")
+async def authentication(request: Request, code: str, state: str):
+    # request_code = request.query_params.get("code")
     channel_id = config.LINE_CHANNEL_ID
     client_secret = config.LINE_CHANNEL_SECRET
     redirect_url = f"{get_host_url(request)}{config.ENDPOINT_AUTH}"
@@ -60,7 +96,7 @@ async def authentication(request: Request):
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     data_params = {
         "grant_type": "authorization_code",
-        "code": request_code,
+        "code": code,
         "redirect_uri": redirect_url,
         "client_id": channel_id,
         "client_secret": client_secret
@@ -91,16 +127,56 @@ async def authentication(request: Request):
 
     # end of ここからおまけ
 
+    # PocketBase
+    """
+    - (state == nonce)のレコードを取得
+    - app への redirect_urlを取得
+    - login テーブルから nonceを削除
+    - session テーブルへログイン情報の書き込み
+    - redirect_url あればそこへ返す。なければ dummy html
+    """
+    login_db = pb.collection('login')
+    try:
+        # とりあえず上書きして動けばいい場合
+        while True:
+            item = login_db.get_first_list_item(f'nonce = "{state}"')
+            redirect_url = item.redirect_url
+            login_db.delete(item.id)
+    except pocketbase.utils.ClientResponseError as e:
+        # expecting for "The requested resource wasn't found."
+        if e.status != 404:
+            # unexpected error
+            raise e
+
+    new_session = pb.collection('sessions').create({
+        "access_token": token_response["access_token"],
+        "refresh_token": token_response["refresh_token"],
+        "user_id": decoded_id_token["sub"],
+        "expire": datetime.fromtimestamp(decoded_id_token["exp"], tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"),
+        "name": decoded_id_token["name"],
+        "picture": decoded_id_token["picture"] if "picture" in decoded_id_token else None,
+    })
+
+    # end of PocketBase
+
+    # TODO: cookie書き込みも対応する？
+
+    if redirect_url:
+        url=f'{redirect_url}{"?" if redirect_url.find("?") == -1 else "&"}session={new_session.id}'
+        return RedirectResponse(url=url)
+
     context = {
         "request": request,
         "title": config.APP_TITLE,
         "name": "Auth!",
         "debug": json.dumps({
             "token_response": token_response,
-            "decoded_id_token": decoded_id_token
+            "decoded_id_token": decoded_id_token,
+            "session": new_session.__repr__(),
         }, indent=2, ensure_ascii=False),
     }
     return templates.TemplateResponse("index.html", context)
+
 
 logger.info(f"Valid endpoints: [{config.ENDPOINT_LOGIN}, {config.ENDPOINT_AUTH}]")
 
