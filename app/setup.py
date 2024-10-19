@@ -6,7 +6,7 @@ pb = PocketBase(config.PB_HOST)
 r = pb.admins.auth_with_password(config.PB_ADMIN, config.PB_PASSWORD)
 print("login", r.is_valid)
 
-print(pb.collections.create(
+session_table = pb.collections.create(
     {
         "name": "sessions",
         "type": "base",
@@ -43,10 +43,9 @@ print(pb.collections.create(
             }
         ],
     }
-))
+)
 
-
-print(pb.collections.create(
+login_table = (pb.collections.create(
     {
         "name": "login",
         "type": "base",
@@ -60,7 +59,20 @@ print(pb.collections.create(
                 "name": "redirect_url",
                 "type": "text",
                 "required": False,
+            },
+            {
+                "name": "session",
+                "type": "relation",
+                "options": {
+                    "collectionId": session_table.id,
+                    "cascadeDelete": False,
+                    "minSelect": None,
+                    "maxSelect": 1,
+                    "displayFields": None
+                }
             }
         ],
     }
 ))
+
+print(session_table, login_table)
