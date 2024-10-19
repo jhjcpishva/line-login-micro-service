@@ -39,6 +39,15 @@ class MyPbDb:
             "redirect_url": redirect_url,
         })
 
+    def update_login_nonce(self, record: BaseModel) -> BaseModel:
+        login_db = self.pb.collection("login")
+        return login_db.update(record.id, {
+            "nonce": record.nonce,
+            "redirect_url": record.redirect_url,
+            "session": record.session,
+
+        })
+
     def create_session(self, access_token: str, refresh_token: str, user_id: str, expire: datetime, name: str,
                        picture: Optional[str] = None) -> BaseModel:
         return self.pb.collection('sessions').create({

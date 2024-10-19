@@ -57,9 +57,12 @@ async def line_login(request: Request, nonce: str = "__none__", redirect_url: st
 async def authentication(request: Request, code: str, state: str):
     auth = await MyLineLogin.authentication(f"{get_host_url(request)}{config.ENDPOINT_AUTH}", code)
 
-    nonce_record = db.get_nonce(state)
-    db.clear_existing_nonce(state)
     new_session = db.create_session(**auth.__dict__)
+
+    # update nonce record
+    nonce_record = db.get_nonce(state)
+    nonce_record.session = new_session.id
+    db.update_login_nonce(nonce_record)
 
     # TODO: cookie書き込みも対応する？
 
