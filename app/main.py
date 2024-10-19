@@ -12,6 +12,7 @@ import pocketbase.utils
 from pocketbase import PocketBase
 
 import config
+from database import MyPbDb
 
 app = FastAPI()
 app.mount(path="/static", app=StaticFiles(directory="static"), name="static")
@@ -19,8 +20,7 @@ templates = Jinja2Templates(directory="templates")
 
 logger = logging.getLogger("uvicorn")
 
-pb = PocketBase(config.PB_HOST)
-pb.admins.auth_with_password(config.PB_ADMIN, config.PB_PASSWORD)
+db = MyPbDb()
 
 
 def get_host_url(request: Request) -> str:
@@ -49,30 +49,9 @@ async def read_root(request: Request):
 
 @app.get(config.ENDPOINT_LOGIN, response_class=HTMLResponse)
 async def line_login(request: Request, nonce: str = "__none__", redirect_url: str = None):
-    login_db = pb.collection("login")
-
-    # PocketBase
-
-    # ちゃんと確認するならこれ
-    # has_duplicate = login_db.get_list(query_params={"filter": f'nonce = "{nonce}"'}).total_items != 0
-    try:
-        # とりあえず上書きして動けばいい場合
-        while True:
-            item = login_db.get_first_list_item(f'nonce = "{nonce}"')
-            login_db.delete(item.id)
-    except pocketbase.utils.ClientResponseError as e:
-        # expecting for "The requested resource wasn't found."
-        if e.status != 404:
-            # unexpected error
-            raise e
-
-    r = pb.collection("login").create({
-        "nonce": nonce,
-        "redirect_url": redirect_url,
-    })
+    db.clear_existing_nonce(nonce)
+    r = db.create_new_login_nonce(nonce, redirect_url)
     logger.info(f"pb inserted {r.id}")
-    # end of PocketBase
-
 
     location = get_line_login_location(request, nonce)
 
@@ -135,28 +114,15 @@ async def authentication(request: Request, code: str, state: str):
     - session テーブルへログイン情報の書き込み
     - redirect_url あればそこへ返す。なければ dummy html
     """
-    login_db = pb.collection('login')
-    try:
-        # とりあえず上書きして動けばいい場合
-        while True:
-            item = login_db.get_first_list_item(f'nonce = "{state}"')
-            redirect_url = item.redirect_url
-            login_db.delete(item.id)
-    except pocketbase.utils.ClientResponseError as e:
-        # expecting for "The requested resource wasn't found."
-        if e.status != 404:
-            # unexpected error
-            raise e
-
-    new_session = pb.collection('sessions').create({
-        "access_token": token_response["access_token"],
-        "refresh_token": token_response["refresh_token"],
-        "user_id": decoded_id_token["sub"],
-        "expire": datetime.fromtimestamp(decoded_id_token["exp"], tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"),
-        "name": decoded_id_token["name"],
-        "picture": decoded_id_token["picture"] if "picture" in decoded_id_token else None,
-    })
-
+    db.clear_existing_nonce(state)
+    new_session = db.create_session(
+        access_token =token_response["access_token"],
+        refresh_token =token_response["refresh_token"],
+        user_id =decoded_id_token["sub"],
+        expire =datetime.fromtimestamp(decoded_id_token["exp"], tz=timezone.utc),
+        name =decoded_id_token["name"],
+        picture =decoded_id_token["picture"] if "picture" in decoded_id_token else None,
+    )
     # end of PocketBase
 
     # TODO: cookie書き込みも対応する？
