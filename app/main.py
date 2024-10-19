@@ -8,8 +8,6 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-import pocketbase.utils
-from pocketbase import PocketBase
 
 import config
 from database import MyPbDb
