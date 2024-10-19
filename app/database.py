@@ -15,6 +15,10 @@ class MyPbDb:
         self.pb = PocketBase(config.PB_HOST)
         self.pb.admins.auth_with_password(config.PB_ADMIN, config.PB_PASSWORD)
 
+    def get_nonce(self, nonce: str) -> BaseModel:
+        login_db = self.pb.collection("login")
+        return login_db.get_first_list_item(f'nonce = "{nonce}"')
+
     def clear_existing_nonce(self, nonce: str):
         login_db = self.pb.collection("login")
         try:
@@ -45,4 +49,3 @@ class MyPbDb:
             "name": name,
             "picture": picture,
         })
-
