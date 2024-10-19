@@ -27,7 +27,6 @@ class MyLineLogin:
 
     @staticmethod
     async def authentication(redirect_url: str, code: str) -> AuthResult:
-        # request_code = request.query_params.get("code")
         channel_id = config.LINE_CHANNEL_ID
         client_secret = config.LINE_CHANNEL_SECRET
 

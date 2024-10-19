@@ -1,9 +1,6 @@
 import json
 import logging
-from datetime import datetime, timezone
 
-import httpx
-import jwt
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
