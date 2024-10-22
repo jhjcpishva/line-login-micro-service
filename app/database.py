@@ -1,11 +1,25 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, cast
 
 import pocketbase.utils
 from pocketbase import PocketBase
 from pocketbase.models.utils import BaseModel
 
 import config
+
+
+class LoginRecord(BaseModel):
+    nonce: str
+    redirect_url: Optional[str] = None
+    session: Optional[str] = None
+
+
+class SessionRecord(BaseModel):
+    access_token: str
+    refresh_token: str
+    user_id: str
+    name: str
+    picture: Optional[str] = None
 
 
 class MyPbDb:
@@ -15,13 +29,13 @@ class MyPbDb:
         self.pb = PocketBase(config.PB_HOST)
         self.pb.admins.auth_with_password(config.PB_ADMIN, config.PB_PASSWORD)
 
-    def get_nonce(self, nonce: str) -> BaseModel:
+    def get_nonce(self, nonce: str) -> LoginRecord:
         login_db = self.pb.collection("login")
         return login_db.get_first_list_item(f'nonce = "{nonce}"')
 
-    def get_nonce_by_id_or_none(self, _id:str) -> BaseModel:
+    def get_nonce_by_id_or_none(self, _id: str) -> LoginRecord | None:
         try:
-            return self.pb.collection("login").get_one(_id)
+            return cast(LoginRecord, self.pb.collection("login").get_one(_id))
         except pocketbase.utils.ClientResponseError as e:
             # expecting for "The requested resource wasn't found."
             if e.status != 404:
@@ -43,28 +57,27 @@ class MyPbDb:
                 raise e
         return None
 
-    def create_new_login_nonce(self, nonce: str, redirect_url: str) -> BaseModel:
-        return self.pb.collection("login").create({
+    def create_new_login_nonce(self, nonce: str, redirect_url: str) -> LoginRecord:
+        return cast(LoginRecord, self.pb.collection("login").create({
             "nonce": nonce,
             "redirect_url": redirect_url,
-        })
+        }))
 
-    def update_login_nonce(self, record: BaseModel) -> BaseModel:
+    def update_login_nonce(self, record: LoginRecord) -> LoginRecord:
         login_db = self.pb.collection("login")
-        return login_db.update(record.id, {
+        return cast(LoginRecord, login_db.update(record.id, {
             "nonce": record.nonce,
             "redirect_url": record.redirect_url,
             "session": record.session,
-
-        })
+        }))
 
     def create_session(self, access_token: str, refresh_token: str, user_id: str, expire: datetime, name: str,
-                       picture: Optional[str] = None) -> BaseModel:
-        return self.pb.collection('sessions').create({
+                       picture: Optional[str] = None) -> SessionRecord:
+        return cast(SessionRecord, self.pb.collection('sessions').create({
             "access_token": access_token,
             "refresh_token": refresh_token,
             "user_id": user_id,
             "expire": expire.strftime("%Y-%m-%d %H:%M:%S.%f"),
             "name": name,
             "picture": picture,
-        })
+        }))
