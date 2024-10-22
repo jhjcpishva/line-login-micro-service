@@ -1,14 +1,15 @@
 import json
 import logging
 
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 import config
 from database import MyPbDb
 from line import MyLineLogin
+import Models
 
 app = FastAPI()
 app.mount(path="/static", app=StaticFiles(directory="static"), name="static")
@@ -68,7 +69,7 @@ async def authentication(request: Request, code: str, state: str):
 
     redirect_url = nonce_record.redirect_url
     if redirect_url:
-        url = f'{redirect_url}{"?" if redirect_url.find("?") == -1 else "&"}success={new_session.id}'
+        url = f'{redirect_url}{"?" if redirect_url.find("?") == -1 else "&"}success={nonce_record.id}&nonce={state}'
         return RedirectResponse(url=url)
 
     context = {
@@ -85,7 +86,14 @@ async def authentication(request: Request, code: str, state: str):
     return templates.TemplateResponse("index.html", context)
 
 
-logger.info(f"Valid endpoints: [{config.ENDPOINT_LOGIN}, {config.ENDPOINT_AUTH}]")
+@app.post('/api/v1/auth/collect', response_class=JSONResponse)
+async def api_auth_collect(body: Models.AuthCollectRequest) -> Models.AuthCollectResponse:
+    r = db.get_nonce_by_id_or_none(body.code)
+    if r is None:
+        raise HTTPException(status_code=400, detail="nonce not found")
+    db.clear_existing_nonce(r.nonce)
+    return Models.AuthCollectResponse(session=r.session)
+
 
 if __name__ == '__main__':
     import uvicorn

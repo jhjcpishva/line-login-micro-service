@@ -19,6 +19,16 @@ class MyPbDb:
         login_db = self.pb.collection("login")
         return login_db.get_first_list_item(f'nonce = "{nonce}"')
 
+    def get_nonce_by_id_or_none(self, _id:str) -> BaseModel:
+        try:
+            return self.pb.collection("login").get_one(_id)
+        except pocketbase.utils.ClientResponseError as e:
+            # expecting for "The requested resource wasn't found."
+            if e.status != 404:
+                # unexpected error
+                raise e
+        return None
+
     def clear_existing_nonce(self, nonce: str):
         login_db = self.pb.collection("login")
         try:
