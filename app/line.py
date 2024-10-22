@@ -50,7 +50,8 @@ class MyLineLogin:
                                       client_secret,
                                       audience=channel_id,
                                       issuer='https://access.line.me',
-                                      algorithms=['HS256'])
+                                      algorithms=['HS256'],
+                                      options={'verify_iat': False})
 
         return AuthResult(
             access_token=token_response["access_token"],
