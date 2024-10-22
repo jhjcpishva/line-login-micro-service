@@ -2,7 +2,7 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, Response, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -122,6 +122,22 @@ async def api_session_get(session_id: str) -> Models.GetSessionResponse:
         expireAt=r.expire,
         shouldRefreshToken=should_refresh_token,
     )
+
+
+@app.post('/api/v1/session/{session_id}/refresh', status_code=204)
+async def api_session_refresh(session_id: str) -> Response:
+    r = db.get_session_or_none(session_id)
+    if r is None:
+        raise HTTPException(status_code=400, detail="session not found")
+
+    refresh_result = await MyLineLogin.refresh_token(r.refresh_token)
+
+    r.access_token = refresh_result.access_token
+    r.refresh_token = refresh_result.refresh_token
+    r.expire = refresh_result.expire.strftime("%Y-%m-%d %H:%M:%S.%f")
+    db.update_session(r)
+
+    return Response(status_code=204)
 
 
 if __name__ == '__main__':

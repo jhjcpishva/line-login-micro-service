@@ -93,3 +93,13 @@ class MyPbDb:
                 raise e
         return None
 
+    def update_session(self, record: SessionRecord) -> SessionRecord:
+        sessions_db = self.pb.collection("sessions")
+        return cast(SessionRecord, sessions_db.update(record.id, {
+            "access_token": record.access_token,
+            "refresh_token": record.refresh_token,
+            "user_id": record.user_id,
+            "expire": record.expire,
+            "name": record.name,
+            "picture": record.picture,
+        }))
