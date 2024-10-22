@@ -19,6 +19,8 @@ logger = logging.getLogger("uvicorn")
 
 db = MyPbDb()
 
+DEFAULT_NONCE = "__nonce__"
+
 
 def get_host_url(request: Request) -> str:
     return f"{request.base_url.scheme}://{request.base_url.netloc}"
@@ -38,7 +40,7 @@ async def read_root(request: Request):
 
 
 @app.get(config.ENDPOINT_LOGIN, response_class=HTMLResponse)
-async def line_login(request: Request, nonce: str = "__none__", redirect_url: str = None):
+async def line_login(request: Request, nonce: str = DEFAULT_NONCE, redirect_url: str = None):
     db.clear_existing_nonce(nonce)
     r = db.create_new_login_nonce(nonce, redirect_url)
     logger.info(f"pb inserted {r.id}")
@@ -69,7 +71,8 @@ async def authentication(request: Request, code: str, state: str):
 
     redirect_url = nonce_record.redirect_url
     if redirect_url:
-        url = f'{redirect_url}{"?" if redirect_url.find("?") == -1 else "&"}success={nonce_record.id}&nonce={state}'
+        _nonce = "" if state == DEFAULT_NONCE else f"&nonce={state}"
+        url = f'{redirect_url}{"?" if redirect_url.find("?") == -1 else "&"}success={nonce_record.id}{_nonce}'
         return RedirectResponse(url=url)
 
     context = {
