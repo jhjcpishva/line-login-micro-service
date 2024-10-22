@@ -90,7 +90,7 @@ async def authentication(request: Request, code: str, state: str):
     return templates.TemplateResponse("index.html", context)
 
 
-@app.post('/api/v1/auth/collect', response_class=JSONResponse)
+@app.post(config.ENDPOINT_API + '/v1/auth/collect', response_class=JSONResponse)
 async def api_auth_collect(body: Models.AuthCollectRequest) -> Models.AuthCollectResponse:
     r = db.get_nonce_by_id_or_none(body.code)
     if r is None:
@@ -99,7 +99,7 @@ async def api_auth_collect(body: Models.AuthCollectRequest) -> Models.AuthCollec
     return Models.AuthCollectResponse(session=r.session)
 
 
-@app.get('/api/v1/sessions/{session_id}/', response_class=JSONResponse)
+@app.get(config.ENDPOINT_API + '/v1/sessions/{session_id}/', response_class=JSONResponse)
 async def api_session_get(session_id: str) -> Models.GetSessionResponse:
     r = db.get_session_or_none(session_id)
     if r is None:
@@ -124,7 +124,7 @@ async def api_session_get(session_id: str) -> Models.GetSessionResponse:
     )
 
 
-@app.post('/api/v1/sessions/{session_id}/refresh', status_code=204)
+@app.post(config.ENDPOINT_API + '/v1/sessions/{session_id}/refresh', status_code=204)
 async def api_session_refresh(session_id: str) -> Response:
     r = db.get_session_or_none(session_id)
     if r is None:
