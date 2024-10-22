@@ -18,6 +18,7 @@ class SessionRecord(BaseModel):
     access_token: str
     refresh_token: str
     user_id: str
+    expire: str
     name: str
     picture: Optional[str] = None
 
@@ -81,3 +82,14 @@ class MyPbDb:
             "name": name,
             "picture": picture,
         }))
+
+    def get_session_or_none(self, _id: str) -> SessionRecord | None:
+        try:
+            return cast(SessionRecord, self.pb.collection("sessions").get_one(_id))
+        except pocketbase.utils.ClientResponseError as e:
+            # expecting for "The requested resource wasn't found."
+            if e.status != 404:
+                # unexpected error
+                raise e
+        return None
+

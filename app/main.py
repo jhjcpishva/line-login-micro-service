@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
@@ -96,6 +97,31 @@ async def api_auth_collect(body: Models.AuthCollectRequest) -> Models.AuthCollec
         raise HTTPException(status_code=400, detail="nonce not found")
     db.clear_existing_nonce(r.nonce)
     return Models.AuthCollectResponse(session=r.session)
+
+
+@app.get('/api/v1/session/{session_id}/', response_class=JSONResponse)
+async def api_session_get(session_id: str) -> Models.GetSessionResponse:
+    r = db.get_session_or_none(session_id)
+    if r is None:
+        raise HTTPException(status_code=400, detail="session not found")
+
+    expire = (datetime
+              .strptime(r.expire[:-1], "%Y-%m-%d %H:%M:%S.%f")  # skip tz
+              .replace(tzinfo=timezone.utc))
+
+    now = datetime.now(tz=timezone.utc)
+    if expire < now:
+        # session expired
+        raise HTTPException(status_code=400, detail="session is expired")
+
+    should_refresh_token = (expire - now) < timedelta(minutes=15)
+
+    return Models.GetSessionResponse(
+        name=r.name,
+        picture=r.picture,
+        expireAt=r.expire,
+        shouldRefreshToken=should_refresh_token,
+    )
 
 
 if __name__ == '__main__':
