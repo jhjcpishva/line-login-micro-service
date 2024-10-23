@@ -14,6 +14,7 @@ LINE_CHANNEL_ID = os.getenv("LINE_CHANNEL_ID")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 
 PORT = int(os.getenv("PORT", "8000"))
+ALLOW_ORIGINS = os.getenv("ALLOW_ORIGINS", "*")
 ENDPOINT_LOGIN = os.getenv("ENDPOINT_LOGIN", "/login")
 ENDPOINT_AUTH = os.getenv("ENDPOINT_AUTH", "/auth")
 ENDPOINT_API = os.getenv("ENDPOINT_API", "/api")

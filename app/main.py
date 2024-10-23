@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request, Response, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 
 import config
 from database import MyPbDb
@@ -14,6 +15,13 @@ import Models
 
 app = FastAPI()
 app.mount(path="/static", app=StaticFiles(directory="static"), name="static")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[s.strip() for s in config.ALLOW_ORIGINS.split(',')],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 templates = Jinja2Templates(directory="templates")
 
 logger = logging.getLogger("uvicorn")
