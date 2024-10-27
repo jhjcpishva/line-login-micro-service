@@ -6,21 +6,21 @@
 
 
 ```sh
-$ docker compose build
+docker compose build
 ```
 
 ### Initialize database
 
 
 ```sh
-$ sh setup_pocketbase.sh
+sh setup_pocketbase.sh
 ```
 
 ## Serve
 
 
 ```sh
-$ docker compose up
+docker compose up
 ```
 
 
