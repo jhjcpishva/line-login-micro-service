@@ -4,13 +4,11 @@
 
 ### build image
 
-
 ```sh
 docker compose build
 ```
 
 ### Initialize database
-
 
 ```sh
 sh setup_pocketbase.sh
@@ -18,11 +16,9 @@ sh setup_pocketbase.sh
 
 ## Serve
 
-
 ```sh
 docker compose up
 ```
-
 
 ## Flow diagram
 
@@ -34,7 +30,7 @@ sequenceDiagram
   participant llms as LineLoginMicroService
   participant line as LINE
 
-  %% 初回閲覧
+  %% first visit
   Note right of user: First Time Login
 
   user ->>+ app: Open First Time
@@ -64,7 +60,7 @@ sequenceDiagram
   llms -->>- app: profile
   app -->>- user: login complete. store session
 
-  %% 2回目以降
+  %% second+ visit
   Note right of user: Revisit
   user ->>+ app: Reopen app
 
