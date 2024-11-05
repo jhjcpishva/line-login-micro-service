@@ -13,11 +13,16 @@ from database import MyPbDb
 from line import MyLineLogin
 import Models
 
+STATIC_PATH = f"{config.APP_PAGE_CONTEXT_PATH}/static"
+ENDPOINT_AUTH = f"{config.APP_PAGE_CONTEXT_PATH}/auth"
+DEFAULT_NONCE = "__nonce__"
+
+
 app = FastAPI()
-app.mount(path="/static", app=StaticFiles(directory="static"), name="static")
+app.mount(path=f"{STATIC_PATH}", app=StaticFiles(directory="static"), name="static")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[s.strip() for s in config.ALLOW_ORIGINS.split(',')],
+    allow_origins=[s.strip() for s in config.APP_ALLOW_ORIGINS.split(',')],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,14 +33,12 @@ logger = logging.getLogger("uvicorn")
 
 db = MyPbDb()
 
-DEFAULT_NONCE = "__nonce__"
-
 
 def get_host_url(request: Request) -> str:
     return f"{request.base_url.scheme}://{request.base_url.netloc}"
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get(f"{config.APP_PAGE_CONTEXT_PATH}/", response_class=HTMLResponse)
 async def read_root(request: Request):
     context = {
         "request": request,
@@ -44,26 +47,27 @@ async def read_root(request: Request):
     return templates.TemplateResponse("index.html", context)
 
 
-@app.get(config.ENDPOINT_LOGIN, response_class=HTMLResponse)
+@app.get(f"{config.APP_PAGE_CONTEXT_PATH}/login", response_class=HTMLResponse)
 async def line_login(request: Request, nonce: str = DEFAULT_NONCE, redirect_url: str = None):
     db.clear_existing_nonce(nonce)
     r = db.create_new_login_nonce(nonce, redirect_url)
     logger.info(f"pb inserted {r.id}")
 
     location = MyLineLogin.get_line_login_location(
-        f"{get_host_url(request)}{config.ENDPOINT_AUTH}", nonce)
+        f"{get_host_url(request)}{ENDPOINT_AUTH}", nonce)
 
     context = {
         "request": request,
         "title": config.APP_TITLE,
+        "static_path": STATIC_PATH,
         "location": location,
     }
     return templates.TemplateResponse("login.html", context)
 
 
-@app.get(config.ENDPOINT_AUTH, response_class=HTMLResponse)
+@app.get(f"{ENDPOINT_AUTH}", response_class=HTMLResponse)
 async def authentication(request: Request, code: str, state: str):
-    auth = await MyLineLogin.authentication(f"{get_host_url(request)}{config.ENDPOINT_AUTH}", code)
+    auth = await MyLineLogin.authentication(f"{get_host_url(request)}{ENDPOINT_AUTH}", code)
 
     new_session = db.create_session(**auth.__dict__)
 
@@ -81,13 +85,13 @@ async def authentication(request: Request, code: str, state: str):
     context = {
         "request": request,
         "title": config.APP_TITLE,
-        "code": code,
+        "code": nonce_record.id,
         "nonce": state,
     }
     return templates.TemplateResponse("authenticate.html", context)
 
 
-@app.post(config.ENDPOINT_API + '/v1/auth/collect', response_class=JSONResponse)
+@app.post(f"{config.APP_API_CONTEXT_PATH}/v1/auth/collect", response_class=JSONResponse)
 async def api_auth_collect(body: Models.AuthCollectRequest) -> Models.AuthCollectResponse:
     r = db.get_nonce_by_id_or_none(body.code)
     if r is None:
@@ -96,7 +100,7 @@ async def api_auth_collect(body: Models.AuthCollectRequest) -> Models.AuthCollec
     return Models.AuthCollectResponse(session=r.session)
 
 
-@app.get(config.ENDPOINT_API + '/v1/sessions/{session_id}/', response_class=JSONResponse)
+@app.get(f"{config.APP_API_CONTEXT_PATH}/v1/sessions/{{session_id}}/", response_class=JSONResponse)
 async def api_session_get(session_id: str) -> Models.GetSessionResponse:
     r = db.get_session_or_none(session_id)
     if r is None:
@@ -121,7 +125,7 @@ async def api_session_get(session_id: str) -> Models.GetSessionResponse:
     )
 
 
-@app.post(config.ENDPOINT_API + '/v1/sessions/{session_id}/refresh', status_code=204)
+@app.post(f"{config.APP_API_CONTEXT_PATH}/v1/sessions/{{session_id}}/refresh", status_code=204)
 async def api_session_refresh(session_id: str) -> Response:
     r = db.get_session_or_none(session_id)
     if r is None:
@@ -140,4 +144,4 @@ async def api_session_refresh(session_id: str) -> Response:
 if __name__ == '__main__':
     import uvicorn
 
-    uvicorn.run("main:app", host="0.0.0.0", port=config.PORT, reload=(not config.PRODUCTION))
+    uvicorn.run("main:app", host="0.0.0.0", port=config.APP_PORT, reload=(not config.PRODUCTION))
