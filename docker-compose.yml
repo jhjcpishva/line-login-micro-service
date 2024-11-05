@@ -33,4 +33,3 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    # entrypoint: /usr/local/bin/pocketbase serve --dev --http=0.0.0.0:8090 --dir=/pb_data --publicDir=/pb_public --hooksDir=/pb_hooks
