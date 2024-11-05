@@ -1,6 +1,5 @@
 from pocketbase import PocketBase
 import config
-import time
 
 pb = PocketBase(config.PB_HOST)
 r = pb.admins.auth_with_password(config.PB_ADMIN, config.PB_PASSWORD)
