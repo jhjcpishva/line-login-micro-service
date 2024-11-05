@@ -40,10 +40,6 @@ async def read_root(request: Request):
     context = {
         "request": request,
         "title": config.APP_TITLE,
-        "name": "World",
-        "debug": json.dumps({
-            "base/url": request.query_params.__dict__,
-        }),
     }
     return templates.TemplateResponse("index.html", context)
 
@@ -75,8 +71,6 @@ async def authentication(request: Request, code: str, state: str):
     nonce_record = db.get_nonce(state)
     nonce_record.session = new_session.id
     db.update_login_nonce(nonce_record)
-
-    # TODO: cookie書き込みも対応する？
 
     redirect_url = nonce_record.redirect_url
     if redirect_url:
