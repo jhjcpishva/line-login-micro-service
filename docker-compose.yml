@@ -3,15 +3,8 @@ services:
   app:
     build: ./app/.
     image: lineloginmicroservice-app
-    environment:
-      - LINE_CHANNEL_ID=${LINE_CHANNEL_ID}
-      - LINE_CHANNEL_SECRET=${LINE_CHANNEL_SECRET}
-      - APP_TITLE=${APP_TITLE}
-      - PB_HOST=http://pocketbase:8090
-      - PB_ADMIN=admin@example.com
-      - PB_PASSWORD=password1234
-    volumes:
-      - ./app:/app
+    env_file:
+      - .env
     ports:
       - "8000:8000"
     depends_on:
@@ -24,8 +17,8 @@ services:
     ports:
       - "8090:8090"
     environment:
-      - PB_ADMIN=admin@example.com
-      - PB_PASSWORD=password1234
+      - PB_ADMIN=${PB_ADMIN}
+      - PB_PASSWORD=${PB_PASSWORD}
     volumes:
       - ./docker/pocketbase/data:/pb_data
     healthcheck: # optional (recommended) since v0.10.0
