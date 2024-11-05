@@ -13,6 +13,7 @@ class AuthCollectResponse(BaseModel):
 
 class GetSessionResponse(BaseModel):
     name: str
+    user_id: str
     picture: Optional[str] = None
     shouldRefreshToken: bool
     expireAt: str

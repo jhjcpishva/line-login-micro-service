@@ -118,6 +118,7 @@ async def api_session_get(session_id: str) -> Models.GetSessionResponse:
 
     return Models.GetSessionResponse(
         name=r.name,
+        user_id=r.user_id,
         picture=r.picture,
         expireAt=r.expire,
         shouldRefreshToken=should_refresh_token,
