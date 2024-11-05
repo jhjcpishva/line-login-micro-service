@@ -2,6 +2,7 @@ services:
   # Add your services here, for example:
   app:
     build: ./app/.
+    image: lineloginmicroservice-app
     environment:
       - LINE_CHANNEL_ID=${LINE_CHANNEL_ID}
       - LINE_CHANNEL_SECRET=${LINE_CHANNEL_SECRET}
