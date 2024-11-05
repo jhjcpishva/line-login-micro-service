@@ -1,0 +1,18 @@
+<html>
+    <head>
+        <title>{{ title }} code={{code}}</title>
+    </head>
+    <body>
+        <h3>Paste following code to your app to complete</h3>
+        <input id="code" style="width: 42ch;" value="{{ code }}" tabindex="0" readonly>
+        <input id="nonce" type="hidden" value="{{ nonce }}" readonly>
+    </body>
+    <script>
+        function main() {
+            const elCode = document.getElementById('code');
+            elCode.addEventListener('focus', () => { elCode.select(); } )
+            elCode.focus();
+        }
+        main();
+    </script>
+</html>

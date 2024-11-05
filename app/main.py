@@ -87,15 +87,10 @@ async def authentication(request: Request, code: str, state: str):
     context = {
         "request": request,
         "title": config.APP_TITLE,
-        "name": "Auth!",
-        "debug": json.dumps({
-            "user_id": auth.user_id,
-            "name": auth.name,
-            "picture": auth.picture,
-            "session": new_session.__repr__(),
-        }, indent=2, ensure_ascii=False),
+        "code": code,
+        "nonce": state,
     }
-    return templates.TemplateResponse("index.html", context)
+    return templates.TemplateResponse("authenticate.html", context)
 
 
 @app.post(config.ENDPOINT_API + '/v1/auth/collect', response_class=JSONResponse)
