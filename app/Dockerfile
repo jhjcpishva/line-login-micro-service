@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-ARG PORT
+# ENV PORT=80 初期値
 
 RUN mkdir /app/
 WORKDIR /app
