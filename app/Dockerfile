@@ -1,6 +1,7 @@
 FROM python:3.11-slim
+LABEL org.opencontainers.image.source="https://github.com/jhjcpishva/LineLoginMicroService"
 
-# ENV PORT=80 初期値
+EXPOSE 8000
 
 RUN mkdir /app/
 WORKDIR /app
