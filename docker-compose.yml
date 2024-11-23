@@ -1,5 +1,5 @@
 services:
-  # Add your services here, for example:
+  # Build locally
   app:
     build: ./app/.
     image: lineloginmicroservice-app
@@ -9,6 +9,15 @@ services:
       - "8000:8000"
     depends_on:
       - pocketbase
+  # Use remote image
+  # app:
+  #   image: ghcr.io/jhjcpishva/line-login-micro-service:latest
+  #   env_file:
+  #     - .env
+  #   ports:
+  #     - "8000:8000"
+  #   depends_on:
+  #     - pocketbase
 
   pocketbase:
     image: ghcr.io/muchobien/pocketbase:0.22.21
