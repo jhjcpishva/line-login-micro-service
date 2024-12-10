@@ -1,19 +1,25 @@
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, cast
+from typing import Optional
 
-import pocketbase.utils
-from pocketbase import PocketBase
-from pocketbase.models.utils import BaseModel
+from uuid import uuid4
+import sqlite3
 
 import config
 
+@dataclass
+class BaseModel:
+    id: str
+    # created: datetime = datetime.now()
 
+@dataclass
 class LoginRecord(BaseModel):
     nonce: str
     redirect_url: Optional[str] = None
     session: Optional[str] = None
 
 
+@dataclass
 class SessionRecord(BaseModel):
     access_token: str
     refresh_token: str
@@ -24,53 +30,90 @@ class SessionRecord(BaseModel):
 
 
 class MyPbDb:
-    pb: PocketBase
+    db: sqlite3.Connection
 
     def __init__(self):
-        self.pb = PocketBase(config.PB_HOST)
-        self.pb.admins.auth_with_password(config.PB_ADMIN, config.PB_PASSWORD)
+        self.db = db = sqlite3.connect('/db/db.sqlite')
+        cursor = db.cursor()
+        cursor.execute("""
+CREATE TABLE IF NOT EXISTS sessions (
+    id TEXT PRIMARY KEY NOT NULL,
+    access_token TEXT NOT NULL,
+    refresh_token TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    name TEXT,
+    picture TEXT,
+    expire DATE NOT NULL
+);
+""")
+        cursor.execute("""
+CREATE TABLE IF NOT EXISTS login (
+    id TEXT PRIMARY KEY NOT NULL,
+    nonce TEXT NOT NULL,
+    redirect_url TEXT,
+    session_id INTEGER,
+    FOREIGN KEY (session_id) REFERENCES sessions (id)
+);
+""")
+        db.commit()
 
     def get_nonce(self, nonce: str) -> LoginRecord:
-        login_db = self.pb.collection("login")
-        return login_db.get_first_list_item(f'nonce = "{nonce}"')
+        query = """
+SELECT id, nonce, redirect_url, session_id FROM login
+    WHERE nonce = ?"""
+        cursor = self.db.cursor()
+        cursor.execute(query, (nonce,))
+        records = cursor.fetchone()
+        if len(records) == 0:
+            return None
+        
+        return LoginRecord(*records)
 
     def get_nonce_by_id_or_none(self, _id: str) -> LoginRecord | None:
-        try:
-            return cast(LoginRecord, self.pb.collection("login").get_one(_id))
-        except pocketbase.utils.ClientResponseError as e:
-            # expecting for "The requested resource wasn't found."
-            if e.status != 404:
-                # unexpected error
-                raise e
-        return None
+        conditions = {
+            "id": _id,
+        }
+        query = """
+SELECT id, nonce, redirect_url, session_id FROM login
+    WHERE """ + " AND ".join([f"{key}" for key in conditions.keys()])
+        cursor = self.db.cursor()
+        cursor.execute(query, tuple(conditions.values()))
+        records = cursor.fetchall()
+        if len(records) == 0:
+            return None
+        return LoginRecord(*records[0])
 
     def clear_existing_nonce(self, nonce: str):
-        login_db = self.pb.collection("login")
-        try:
-            # とりあえず上書きして動けばいい場合
-            while True:
-                item = login_db.get_first_list_item(f'nonce = "{nonce}"')
-                login_db.delete(item.id)
-        except pocketbase.utils.ClientResponseError as e:
-            # expecting for "The requested resource wasn't found."
-            if e.status != 404:
-                # unexpected error
-                raise e
+        cursor = self.db.cursor()
+        cursor.execute("DELETE FROM login WHERE nonce = ?;", (nonce,))
+        self.db.commit()
         return None
 
     def create_new_login_nonce(self, nonce: str, redirect_url: str) -> LoginRecord:
-        return cast(LoginRecord, self.pb.collection("login").create({
+        _id = uuid4().hex
+        cursor = self.db.cursor()
+        cursor.execute("INSERT INTO login (id, nonce, redirect_url) VALUES (:id, :nonce, :redirect_url)", {
+            "id": _id,
             "nonce": nonce,
-            "redirect_url": redirect_url,
-        }))
+            "redirect_url": redirect_url
+        })
+        self.db.commit()
+        return LoginRecord(_id, nonce, redirect_url)
 
     def update_login_nonce(self, record: LoginRecord) -> LoginRecord:
-        login_db = self.pb.collection("login")
-        return cast(LoginRecord, login_db.update(record.id, {
+        query = """
+UPDATE login SET
+    nonce = :nonce
+WHERE
+    id = :id
+"""
+        cursor = self.db.cursor()
+        cursor.execute(query, {
             "nonce": record.nonce,
-            "redirect_url": record.redirect_url,
-            "session": record.session,
-        }))
+            "id": record.id
+        })
+        self.db.commit()
+        return record
 
     def create_session(self, access_token: str, refresh_token: str, user_id: str, expire: datetime, name: str,
                        picture: Optional[str] = None) -> SessionRecord:
