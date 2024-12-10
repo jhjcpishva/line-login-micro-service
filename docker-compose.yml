@@ -7,31 +7,16 @@ services:
       - .env
     ports:
       - "8000:8000"
-    depends_on:
-      - pocketbase
-  # Use remote image
-  # app:
-  #   image: ghcr.io/jhjcpishva/line-login-micro-service:latest
-  #   env_file:
-  #     - .env
-  #   ports:
-  #     - "8000:8000"
-  #   depends_on:
-  #     - pocketbase
-
-  pocketbase:
-    image: ghcr.io/muchobien/pocketbase:0.22.21
-    container_name: pocketbase
-    restart: unless-stopped
-    ports:
-      - "8090:8090"
-    environment:
-      - PB_ADMIN=${PB_ADMIN}
-      - PB_PASSWORD=${PB_PASSWORD}
     volumes:
-      - ./docker/pocketbase/data:/pb_data
-    healthcheck: # optional (recommended) since v0.10.0
-      test: wget --no-verbose --tries=1 --spider http://localhost:8090/api/health || exit 1
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - "./docker/app/db:/db"
+    develop:
+      watch:
+        - action: sync
+          path: ./app
+          target: /app
+          # ignore:
+            # - node_modules/
+        - action: rebuild
+          path: ./app
+
+    
