@@ -34,7 +34,7 @@ class MyPbDb:
     db: sqlite3.Connection
 
     def __init__(self):
-        self.db = db = sqlite3.connect('../docker/app/db/db.sqlite')
+        self.db = db = sqlite3.connect(config.SQLITE_FILE)
         cursor = db.cursor()
         cursor.execute("""
 CREATE TABLE IF NOT EXISTS sessions (
