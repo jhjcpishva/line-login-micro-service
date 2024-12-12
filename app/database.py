@@ -7,10 +7,12 @@ import sqlite3
 
 import config
 
+
 @dataclass
 class BaseModel:
     id: str
     # created: datetime = datetime.now()
+
 
 @dataclass
 class LoginRecord(BaseModel):
@@ -33,7 +35,7 @@ class MyPbDb:
     db: sqlite3.Connection
 
     def __init__(self):
-        self.db = db = sqlite3.connect('/db/db.sqlite')
+        self.db = db = sqlite3.connect('../docker/app/db/db.sqlite')
         cursor = db.cursor()
         cursor.execute("""
 CREATE TABLE IF NOT EXISTS sessions (
@@ -65,8 +67,8 @@ SELECT id, nonce, redirect_url, session_id FROM login
         cursor.execute(query, (nonce,))
         records = cursor.fetchone()
         if len(records) == 0:
-            return None
-        
+            raise Exception('not found')
+
         return LoginRecord(*records)
 
     def get_nonce_by_id_or_none(self, _id: str) -> LoginRecord | None:
@@ -75,7 +77,7 @@ SELECT id, nonce, redirect_url, session_id FROM login
         }
         query = """
 SELECT id, nonce, redirect_url, session_id FROM login
-    WHERE """ + " AND ".join([f"{key}" for key in conditions.keys()])
+    WHERE """ + " AND ".join([f"{key} = ?" for key in conditions.keys()])
         cursor = self.db.cursor()
         cursor.execute(query, tuple(conditions.values()))
         records = cursor.fetchall()
@@ -117,32 +119,61 @@ WHERE
 
     def create_session(self, access_token: str, refresh_token: str, user_id: str, expire: datetime, name: str,
                        picture: Optional[str] = None) -> SessionRecord:
-        return cast(SessionRecord, self.pb.collection('sessions').create({
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "user_id": user_id,
-            "expire": expire.strftime("%Y-%m-%d %H:%M:%S.%f"),
-            "name": name,
-            "picture": picture,
-        }))
+        _id = uuid4().hex
+        query = """
+INSERT INTO sessions (id, access_token, refresh_token, user_id, expire, name, picture) 
+    VALUES (:id, :access_token, :refresh_token, :user_id, :expire, :name, :picture)
+"""
+        cursor = self.db.cursor()
+        cursor.execute(query,
+                       {
+                           "id": _id,
+                           "access_token": access_token,
+                           "refresh_token": refresh_token,
+                           "user_id": user_id,
+                           "expire": expire,
+                           "name": name,
+                           "picture": picture,
+                       })
+        return SessionRecord(_id, access_token, refresh_token, user_id, expire.isoformat(), name, picture)
 
     def get_session_or_none(self, _id: str) -> SessionRecord | None:
-        try:
-            return cast(SessionRecord, self.pb.collection("sessions").get_one(_id))
-        except pocketbase.utils.ClientResponseError as e:
-            # expecting for "The requested resource wasn't found."
-            if e.status != 404:
-                # unexpected error
-                raise e
-        return None
+        conditions = {
+            "id": _id,
+        }
+        query = """
+SELECT 
+    id, 
+    access_token,
+    refresh_token,
+    user_id,
+    expire,
+    name,
+    picture
+FROM sessions
+WHERE """ + " AND ".join([f"{key}" for key in conditions.keys()])
+        cursor = self.db.cursor()
+        cursor.execute(query, tuple(conditions.values()))
+        records = cursor.fetchall()
+        if len(records) == 0:
+            return None
+        return SessionRecord(*records[0])
 
     def update_session(self, record: SessionRecord) -> SessionRecord:
-        sessions_db = self.pb.collection("sessions")
-        return cast(SessionRecord, sessions_db.update(record.id, {
+        query = """
+UPDATE sessions SET
+    :access_token, :refresh_token, :user_id, :expire, :name, :picture
+WHERE
+    id = :id
+"""
+        cursor = self.db.cursor()
+        cursor.execute(query, {
             "access_token": record.access_token,
             "refresh_token": record.refresh_token,
             "user_id": record.user_id,
             "expire": record.expire,
             "name": record.name,
             "picture": record.picture,
-        }))
+            "id": record.id
+        })
+        self.db.commit()
