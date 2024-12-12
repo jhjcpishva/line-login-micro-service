@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
-
 from uuid import uuid4
 import sqlite3
 
@@ -26,7 +25,7 @@ class SessionRecord(BaseModel):
     access_token: str
     refresh_token: str
     user_id: str
-    expire: str
+    expire: datetime
     name: str
     picture: Optional[str] = None
 
@@ -105,13 +104,15 @@ SELECT id, nonce, redirect_url, session_id FROM login
     def update_login_nonce(self, record: LoginRecord) -> LoginRecord:
         query = """
 UPDATE login SET
-    nonce = :nonce
+    nonce = :nonce,
+    session_id = :session_id
 WHERE
     id = :id
 """
         cursor = self.db.cursor()
         cursor.execute(query, {
             "nonce": record.nonce,
+            "session_id": record.session,
             "id": record.id
         })
         self.db.commit()
@@ -131,11 +132,11 @@ INSERT INTO sessions (id, access_token, refresh_token, user_id, expire, name, pi
                            "access_token": access_token,
                            "refresh_token": refresh_token,
                            "user_id": user_id,
-                           "expire": expire,
+                           "expire": expire.strftime("%Y-%m-%d %H:%M:%S.%f"),
                            "name": name,
                            "picture": picture,
                        })
-        return SessionRecord(_id, access_token, refresh_token, user_id, expire.isoformat(), name, picture)
+        return SessionRecord(_id, access_token, refresh_token, user_id, expire, name, picture)
 
     def get_session_or_none(self, _id: str) -> SessionRecord | None:
         conditions = {
@@ -151,7 +152,7 @@ SELECT
     name,
     picture
 FROM sessions
-WHERE """ + " AND ".join([f"{key}" for key in conditions.keys()])
+WHERE """ + " AND ".join([f"{key} = ?" for key in conditions.keys()])
         cursor = self.db.cursor()
         cursor.execute(query, tuple(conditions.values()))
         records = cursor.fetchall()
