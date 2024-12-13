@@ -105,22 +105,18 @@ async def api_session_get(session_id: str) -> Models.GetSessionResponse:
     if r is None:
         raise HTTPException(status_code=400, detail="session not found")
 
-    expire = (datetime
-              .strptime(r.expire[:-1], "%Y-%m-%d %H:%M:%S.%f")  # skip tz
-              .replace(tzinfo=timezone.utc))
-
     now = datetime.now(tz=timezone.utc)
-    if expire < now:
+    if r.expire < now:
         # session expired
         raise HTTPException(status_code=400, detail="session is expired")
 
-    should_refresh_token = (expire - now) < timedelta(minutes=15)
+    should_refresh_token = (r.expire - now) < timedelta(minutes=15)
 
     return Models.GetSessionResponse(
         name=r.name,
         user_id=r.user_id,
         picture=r.picture,
-        expireAt=r.expire,
+        expireAt=r.expire.isoformat(),
         shouldRefreshToken=should_refresh_token,
     )
 
@@ -135,7 +131,7 @@ async def api_session_refresh(session_id: str) -> Response:
 
     r.access_token = refresh_result.access_token
     r.refresh_token = refresh_result.refresh_token
-    r.expire = refresh_result.expire.strftime("%Y-%m-%d %H:%M:%S.%f")
+    r.expire = refresh_result.expire
     db.update_session(r)
 
     return Response(status_code=204)

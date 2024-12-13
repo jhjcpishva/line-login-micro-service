@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import uuid4
 import sqlite3
@@ -111,7 +111,7 @@ WHERE
 """
         cursor = self.db.cursor()
         cursor.execute(query, {
-            "nonce": record..nonce,
+            "nonce": record.nonce,
             "session": record.session,
             "id": record.id
         })
@@ -158,12 +158,19 @@ WHERE """ + " AND ".join([f"{key} = ?" for key in conditions.keys()])
         records = cursor.fetchall()
         if len(records) == 0:
             return None
-        return SessionRecord(*records[0])
+        session = SessionRecord(*records[0])
+        session.expire = datetime.strptime(session.expire, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=timezone.utc)
+        return session
 
     def update_session(self, record: SessionRecord) -> SessionRecord:
         query = """
 UPDATE sessions SET
-    :access_token, :refresh_token, :user_id, :expire, :name, :picture
+    access_token = :access_token,
+    refresh_token = :refresh_token,
+    user_id = :user_id,
+    expire = :expire,
+    name = :name,
+    picture = :picture
 WHERE
     id = :id
 """
@@ -172,9 +179,10 @@ WHERE
             "access_token": record.access_token,
             "refresh_token": record.refresh_token,
             "user_id": record.user_id,
-            "expire": record.expire,
+            "expire": record.expire.strftime("%Y-%m-%d %H:%M:%S.%f"),
             "name": record.name,
             "picture": record.picture,
             "id": record.id
         })
         self.db.commit()
+        return record
