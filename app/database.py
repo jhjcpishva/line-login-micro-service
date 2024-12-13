@@ -6,6 +6,8 @@ import sqlite3
 
 import config
 
+DATE_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
+
 
 @dataclass
 class BaseModel:
@@ -132,7 +134,7 @@ INSERT INTO sessions (id, access_token, refresh_token, user_id, expire, name, pi
                            "access_token": access_token,
                            "refresh_token": refresh_token,
                            "user_id": user_id,
-                           "expire": expire.strftime("%Y-%m-%d %H:%M:%S.%f"),
+                           "expire": expire.strftime(DATE_FORMAT),
                            "name": name,
                            "picture": picture,
                        })
@@ -159,7 +161,7 @@ WHERE """ + " AND ".join([f"{key} = ?" for key in conditions.keys()])
         if len(records) == 0:
             return None
         session = SessionRecord(*records[0])
-        session.expire = datetime.strptime(session.expire, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=timezone.utc)
+        session.expire = datetime.strptime(session.expire, DATE_FORMAT).replace(tzinfo=timezone.utc)
         return session
 
     def update_session(self, record: SessionRecord) -> SessionRecord:
@@ -179,7 +181,7 @@ WHERE
             "access_token": record.access_token,
             "refresh_token": record.refresh_token,
             "user_id": record.user_id,
-            "expire": record.expire.strftime("%Y-%m-%d %H:%M:%S.%f"),
+            "expire": record.expire.strftime(DATE_FORMAT),
             "name": record.name,
             "picture": record.picture,
             "id": record.id
