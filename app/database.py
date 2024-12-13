@@ -52,15 +52,15 @@ CREATE TABLE IF NOT EXISTS login (
     id TEXT PRIMARY KEY NOT NULL,
     nonce TEXT NOT NULL,
     redirect_url TEXT,
-    session_id INTEGER,
-    FOREIGN KEY (session_id) REFERENCES sessions (id)
+    session TEXT,
+    FOREIGN KEY (session) REFERENCES sessions (id)
 );
 """)
         db.commit()
 
     def get_nonce(self, nonce: str) -> LoginRecord:
         query = """
-SELECT id, nonce, redirect_url, session_id FROM login
+SELECT id, nonce, redirect_url, session FROM login
     WHERE nonce = ?"""
         cursor = self.db.cursor()
         cursor.execute(query, (nonce,))
@@ -75,7 +75,7 @@ SELECT id, nonce, redirect_url, session_id FROM login
             "id": _id,
         }
         query = """
-SELECT id, nonce, redirect_url, session_id FROM login
+SELECT id, nonce, redirect_url, session FROM login
     WHERE """ + " AND ".join([f"{key} = ?" for key in conditions.keys()])
         cursor = self.db.cursor()
         cursor.execute(query, tuple(conditions.values()))
@@ -105,14 +105,14 @@ SELECT id, nonce, redirect_url, session_id FROM login
         query = """
 UPDATE login SET
     nonce = :nonce,
-    session_id = :session_id
+    session = :session
 WHERE
     id = :id
 """
         cursor = self.db.cursor()
         cursor.execute(query, {
-            "nonce": record.nonce,
-            "session_id": record.session,
+            "nonce": record..nonce,
+            "session": record.session,
             "id": record.id
         })
         self.db.commit()
@@ -120,7 +120,7 @@ WHERE
 
     def create_session(self, access_token: str, refresh_token: str, user_id: str, expire: datetime, name: str,
                        picture: Optional[str] = None) -> SessionRecord:
-        _id = uuid4().hex
+        _id = uuid4().hex + uuid4().hex
         query = """
 INSERT INTO sessions (id, access_token, refresh_token, user_id, expire, name, picture) 
     VALUES (:id, :access_token, :refresh_token, :user_id, :expire, :name, :picture)
