@@ -20,6 +20,4 @@ APP_API_CONTEXT_PATH = os.getenv("APP_API_CONTEXT_PATH", "/api")
 
 PRODUCTION = os.getenv("PRODUCTION", "False").lower() == 'true'
 
-PB_HOST = os.getenv("PB_HOST")
-PB_ADMIN = os.getenv("PB_ADMIN")
-PB_PASSWORD = os.getenv("PB_PASSWORD")
+SQLITE_FILE = os.getenv("SQLITE_FILE", ":memory:")

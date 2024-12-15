@@ -12,7 +12,7 @@ desktop.ini
 
 
 # Container data
-docker/pocketbase/data
+docker/app/db/*
 
 # 
 .env*
