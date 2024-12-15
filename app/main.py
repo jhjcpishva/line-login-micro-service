@@ -16,8 +16,15 @@ STATIC_PATH = f"{config.APP_PAGE_CONTEXT_PATH}/static"
 ENDPOINT_AUTH = f"{config.APP_PAGE_CONTEXT_PATH}/auth"
 DEFAULT_NONCE = "__nonce__"
 
+fastapi_options = {}
+if config.APP_DOCS_PREFIX is not None:
+    fastapi_options |= {
+        "docs_url": f"{config.APP_DOCS_PREFIX}/docs",  # Swagger UI の URL
+        "redoc_url": f"{config.APP_DOCS_PREFIX}/redoc",  # ReDoc ドキュメントの URL
+        "openapi_url": f"{config.APP_DOCS_PREFIX}/openapi.json"  # OpenAPI スキーマの URL
+    }
 
-app = FastAPI()
+app = FastAPI(**fastapi_options)
 app.mount(path=f"{STATIC_PATH}", app=StaticFiles(directory="static"), name="static")
 app.add_middleware(
     CORSMiddleware,

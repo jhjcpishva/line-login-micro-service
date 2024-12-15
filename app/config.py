@@ -18,6 +18,7 @@ APP_PUBLIC_URL = os.getenv("APP_PUBLIC_URL", None)
 APP_ALLOW_ORIGINS = os.getenv("APP_ALLOW_ORIGINS", "*")
 APP_PAGE_CONTEXT_PATH = os.getenv("APP_PAGE_CONTEXT_PATH", "")
 APP_API_CONTEXT_PATH = os.getenv("APP_API_CONTEXT_PATH", "/api")
+APP_DOCS_PREFIX = os.getenv("APP_DOCS_PREFIX", None)
 
 PRODUCTION = os.getenv("PRODUCTION", "False").lower() == 'true'
 
