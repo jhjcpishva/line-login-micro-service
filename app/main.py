@@ -34,7 +34,9 @@ db = MyPbDb(logger=logger)
 
 
 def get_host_url(request: Request) -> str:
-    return f"{request.base_url.scheme}://{request.base_url.netloc}"
+    if config.APP_PUBLIC_URL is None:
+        return f"{request.base_url.scheme}://{request.base_url.netloc}"
+    return config.APP_PUBLIC_URL.rstrip('/')
 
 
 @app.get(f"{config.APP_PAGE_CONTEXT_PATH}/", response_class=HTMLResponse)
