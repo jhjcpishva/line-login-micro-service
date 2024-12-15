@@ -1,8 +1,9 @@
+import sqlite3
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
 from uuid import uuid4
-import sqlite3
 
 import config
 
@@ -34,8 +35,11 @@ class SessionRecord(BaseModel):
 
 class MyPbDb:
     db: sqlite3.Connection
+    logger: logging
 
-    def __init__(self):
+    def __init__(self, logger: logging = None):
+        self.logger = logger if logger is not None else logging.getLogger()
+
         self.db = db = sqlite3.connect(config.SQLITE_FILE)
         cursor = db.cursor()
         cursor.execute("""
@@ -58,7 +62,29 @@ CREATE TABLE IF NOT EXISTS login (
     FOREIGN KEY (session) REFERENCES sessions (id)
 );
 """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS _system (
+            version INT NOT NULL,
+            created_at TEXT NOT NULL
+        );""")
         db.commit()
+        record = cursor.execute("SELECT version, created_at FROM _system LIMIT 1;").fetchone()
+        if record is None:
+            version = 1
+            created_at = datetime.utcnow().strftime(DATE_FORMAT)
+            cursor.execute("""
+            INSERT INTO _system (version, created_at)
+                VALUES (:version, :created_at);
+            """, {
+                "version": 1,
+                "created_at": created_at,
+            })
+            self.logger.info(f"DB initialized {version=}, {created_at=}")
+            db.commit()
+        else:
+            version, created_at = record
+            self.logger.info(f"DB open. {version=}, {created_at=}")
+
 
     def get_nonce(self, nonce: str) -> LoginRecord:
         query = """

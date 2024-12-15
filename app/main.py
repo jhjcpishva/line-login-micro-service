@@ -30,7 +30,7 @@ templates = Jinja2Templates(directory="templates")
 
 logger = logging.getLogger("uvicorn")
 
-db = MyPbDb()
+db = MyPbDb(logger=logger)
 
 
 def get_host_url(request: Request) -> str:
