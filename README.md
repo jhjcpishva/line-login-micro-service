@@ -8,12 +8,6 @@
 docker compose build
 ```
 
-### Initialize database
-
-```sh
-sh setup_pocketbase.sh
-```
-
 ## Serve
 
 ```sh
