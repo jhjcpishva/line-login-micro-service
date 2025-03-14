@@ -1,27 +1,17 @@
-# LineLoginMicroService
+# line-login-micro-service
 
-## Setup
+## Overview
 
-### build image
+Simple micro-service to provide wrapper for LINE Login service
 
-```sh
-docker compose build
-```
-
-## Serve
-
-```sh
-docker compose up
-```
-
-## Flow diagram
+## Flow
 
 ```mermaid
 
 sequenceDiagram
   actor user as User
   participant app as Your App
-  participant llms as LineLoginMicroService
+  participant llms as line-login-micro-service
   participant line as LINE
 
   %% first visit
@@ -30,7 +20,7 @@ sequenceDiagram
   user ->>+ app: Open First Time
 
   app ->> app: no session
-  app -->>- user: 307 redirect to `LineLoginMicroService/login`
+  app -->>- user: 307 redirect to `line-login-micro-service/login`
   user ->>+ llms: `/login`
   llms ->> llms: Line Login URL
   llms -->>- user: Line Login Page entrance
@@ -70,4 +60,30 @@ sequenceDiagram
 
   app -->>- user: profile
 
+```
+
+## .env
+
+Reference `env.sample`.
+
+## Documentation
+
+- API documentation is available at `/docs` or `/redoc`.
+
+## Run
+
+### Docker
+
+```sh
+docker run \
+  -env-file .env \
+  -p 8000:8000 \
+  -v "./docker/app/db:/db"
+  ghcr.io/jhjcpishva/line-login-micro-service:latest
+```
+
+### Docker Compose
+
+```sh
+docker compose up
 ```
