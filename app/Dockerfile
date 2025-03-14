@@ -1,5 +1,5 @@
 FROM python:3.11-slim
-LABEL org.opencontainers.image.source="https://github.com/jhjcpishva/LineLoginMicroService"
+LABEL org.opencontainers.image.source="https://github.com/jhjcpishva/line-messaging-micro-service"
 
 EXPOSE 8000
 
