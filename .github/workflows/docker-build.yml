@@ -35,7 +35,7 @@ jobs:
 
       - name: Build Docker image (without push)
         run: |
-          docker buildx build --platform linux/amd64,linux/arm64 -t ${{ env.image_name }}:latest .
+          docker buildx build --platform linux/amd64,linux/arm64 -t ${{ env.image_name }}:latest ./app/
 
   push:
     needs: build
@@ -63,4 +63,4 @@ jobs:
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             TAG=${GITHUB_REF#refs/tags/}
           fi
-          docker buildx build --platform linux/amd64,linux/arm64 -t ${{ env.IMAGE_NAME }}:$TAG --push .
+          docker buildx build --platform linux/amd64,linux/arm64 -t ${{ env.IMAGE_NAME }}:$TAG --push ./app/
