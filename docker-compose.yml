@@ -14,8 +14,6 @@ services:
         - action: sync
           path: ./app
           target: /app
-          # ignore:
-            # - node_modules/
         - action: rebuild
           path: ./app
 
