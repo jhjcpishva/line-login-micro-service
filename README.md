@@ -84,6 +84,43 @@ docker run \
 
 ### Docker Compose
 
-```sh
-docker compose up
+```yml
+services:
+  line-login-micro-service:
+    image: ghcr.io/jhjcpishva/line-login-micro-service:latest
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - "./docker/llms/db:/db"
 ```
+
+<details>
+<summary>for development</summary>
+
+```yml
+services:
+  line-login-micro-service:
+    build: .
+    image: line-login-micro-service
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - "./docker/llms/db:/db"
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+        - action: rebuild
+          path: ./uv.lock
+        - action: rebuild
+          path: ./pyproject.toml
+```
+
+Run `docker compose watch`
+
+</details>
