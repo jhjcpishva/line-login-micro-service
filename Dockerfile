@@ -1,19 +1,18 @@
-FROM python:3.13-slim
-LABEL org.opencontainers.image.source="https://github.com/jhjcpishva/line-login-micro-service"
+# === Build stage ===
+FROM python:3.13-alpine AS builder
 
-# Install uv.
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/
 
 WORKDIR /app
+COPY pyproject.toml uv.lock ./
+RUN uv pip install --system --no-cache -r pyproject.toml
 
-# Copy only necessary files first to leverage caching
-COPY pyproject.toml uv.lock /app/
+# === Final stage ===
+FROM python:3.13-alpine
+LABEL org.opencontainers.image.source="https://github.com/jhjcpishva/line-login-micro-service"
 
-# Install dependencies
-RUN uv sync --frozen --no-cache
-
-# Copy application files
+WORKDIR /app
+COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 COPY . /app
 
-# Run the application
-CMD ["uv", "run", "main.py"]
+CMD ["python", "main.py"]
